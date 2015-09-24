@@ -2,15 +2,21 @@ var gl;
 
 var TRIANGLE_DIVISION = 5.0;
 var TRIANGLE_ANGLE = 0.0;
+var TRIANGLE_LIGHT_POINT = vec2(0.0, 0.0);
 var NEW_TRIANGLE_DIVISION_VALUE = true;
 var NEW_TRIANGLE_ANGLE_VALUE = false;
 
-var SUM_ANGLE = true;
-
 var shaderPrograms;
+var canvas;
 
 window.onload = function init() {
-    var canvas = document.getElementById("gl-canvas");
+    canvas = document.getElementById("gl-canvas");
+
+    canvas.addEventListener('mousemove', function(evt) {
+        var mousePos = getMousePos(canvas, evt);
+        TRIANGLE_LIGHT_POINT = vec2(mousePos.x, mousePos.y);
+    }, false);
+
     gl = WebGLUtils.setupWebGL(canvas);
     if(!gl) { alert("WebGL isn't available"); }
     
@@ -23,6 +29,7 @@ window.onload = function init() {
     gl.useProgram(shaderPrograms);
 
     setInterval(updateTriangle, 1);
+    //updateTriangle();
 }
 
 function updateTriangle(){
@@ -36,6 +43,7 @@ function updateTriangle(){
         setTriangleDistorcion(TRIANGLE_ANGLE);
         NEW_TRIANGLE_ANGLE_VALUE = false;
     }
+    setTriangleLight()
     render();
 }
 
@@ -76,6 +84,11 @@ function setTriangleDistorcion(){
     gl.uniform1f(angleId, TRIANGLE_ANGLE);
 }
 
+function setTriangleLight(){
+    var lightId = gl.getUniformLocation(shaderPrograms, "vLightPoint");
+    gl.uniform2f(lightId, TRIANGLE_LIGHT_POINT[0], TRIANGLE_LIGHT_POINT[1]);
+}
+
 function render(divisionTimes) {
     gl.clear(gl.COLOR_BUFFER_BIT);
     var s = 0;
@@ -111,6 +124,7 @@ function subdivideTriangle(v1, v2, v3) {
     return out;
 }
 
+var SUM_ANGLE = true;
 function calculateAngleValue() {
     if (SUM_ANGLE) {
         updateAngleValue(TRIANGLE_ANGLE + 0.02);
@@ -123,4 +137,9 @@ function calculateAngleValue() {
             SUM_ANGLE = true;
         }
     }
+}
+
+function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    return {x: evt.clientX - rect.left, y: evt.clientY - rect.top};
 }

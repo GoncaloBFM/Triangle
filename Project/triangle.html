@@ -4,20 +4,29 @@
 <script id="vertex-shader" type="x-shader/x-vertex">
 attribute vec4 vPosition;
 uniform float angle;
+varying vec2 vPoint;
+
 void main(){
 	float x = vPosition[0];
 	float y = vPosition[1];
-	float a = angle * pow( y * y  + x * x, 1.0/2.0);
-    gl_Position = vec4(x * cos(a) - y * sin(a),
-                       x * sin(a) + y * cos(a), 
-                       vPosition[2], 
-                       vPosition[3]);
+  vPoint = vec2(x, y);
+
+	float a = angle * pow( y * y  + x * x, 0.5);
+  gl_Position = vec4(x * cos(a) - y * sin(a),
+                     x * sin(a) + y * cos(a), 
+                     vPosition[2], 
+                     vPosition[3]);
 }
 </script>
 <script id="fragment-shader" type="x-shader/x-fragment">
 precision mediump float;
+uniform vec2 vLightPoint;
+varying vec2 vPoint;
 void main() {
-    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    float r = 0.0
+    float b = 0.0;
+    float g = 0.0;
+    gl_FragColor = vec4(r, b, g, 1.0);
 }
 </script>
 <script type="text/javascript" src="../Common/webgl-utils.js"></script>
