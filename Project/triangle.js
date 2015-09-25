@@ -13,13 +13,78 @@ var shaderPrograms;
 var canvas;
 var keysPressed = []; 
 
+var mouse = {
+	lastX : 0,
+	lastY : 0,
+
+	x : 0,
+	y : 0,
+
+	transX : null,
+	transY : null,
+
+	rad2deg : 180.0 / Math.PI,
+
+	calcRefTrans : function(canvas) {
+		mouse.transX = canvas.width / 2
+		mouse.transY = canvas.height / 2
+	},
+
+	update : function() {
+		mouse.lastX = mouse.x
+		mouse.lastY = mouse.y
+
+		mouse.x = event.offsetX - mouse.transX
+		mouse.y = event.offsetY - mouse.transY
+
+	},
+
+	getAngle : function(){
+		if(mouse.lastX == 0 || mouse.lastY == 0
+			|| mouse.x == 0 || mouse.y == 0
+			|| (mouse.x == mouse.lastX && mouse.y == mouse.lastY))
+			return 0;
+
+		var u = vec3(mouse.lastX, mouse.lastY, 0.0)
+		var s = vec3(mouse.x, mouse.y, 0.0)
+
+		normalize(u); normalize(s);
+
+		var angle = Math.acos( dot(u, s) );
+		angle = cross(u, s)[2] < 0 ? angle : -angle
+
+		return angle * mouse.rad2deg
+	},
+
+	isDown : false
+}
+
 window.onload = function init() {
 	canvas = document.getElementById("gl-canvas");
+	mouse.calcRefTrans(canvas)
+
 	canvas.addEventListener('mousemove', function(evt) {
-		var rect = canvas.getBoundingClientRect();
-		var mousePos = {x: evt.clientX - rect.left, y: evt.clientY - rect.top};
-		TRIANGLE_LIGHT_POINT.set(vec2(mousePos.x, mousePos.y));
+		mouse.update();
+		
+		TRIANGLE_LIGHT_POINT.set(vec2(mouse.x, mouse.y));
+
+		if(mouse.isDown){
+			TRIANGLE_ANGLE.set(TRIANGLE_ANGLE.get() + mouse.getAngle() * 0.1)
+
+			MAX_ANGLE = TRIANGLE_ANGLE.get();
+			MIN_ANGLE = -TRIANGLE_ANGLE.get();
+			CURRENT_ANGLE_SLERP_DELTA_TIME = TOTAL_ANGLE_SLERP_DELTA_TIME;
+		}
+
 	}, false);
+
+	canvas.addEventListener("mousedown", function(evt){
+		mouse.isDown = true;
+	}, false)
+
+	canvas.addEventListener("mouseup", function(evt){
+		mouse.isDown = false;
+	}, false)
 
 	canvas.addEventListener("mousewheel", function(e) {
 		var mouseWheel = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
@@ -67,7 +132,7 @@ window.onload = function init() {
 function updateTriangle(){
 	updateTranslationMatrix();
 
-	if(TRIANGLE_AUTOROTATE.get()) {
+	if(TRIANGLE_AUTOROTATE.get() && !mouse.isDown) {
 		calculateAngleValue()
 	}
 
@@ -184,15 +249,16 @@ function subdivideTriangle(v1, v2, v3) {
 	return out;
 }
 
-var SUM_ANGLE = true;
-var MIN_ANGLE = -30.0;
+var MIN_ANGLE = - 30.0;
 var MAX_ANGLE = 30.0;
 var CURRENT_ANGLE_SLERP_DELTA_TIME = 0.0;
-var TOTAL_ANGLE_SLERP_DELTA_TIME = 1.0;
+var TOTAL_ANGLE_SLERP_DELTA_TIME = 0.2;
+var CUT_1 = TOTAL_ANGLE_SLERP_DELTA_TIME;
+var CUT_2 = 2*TOTAL_ANGLE_SLERP_DELTA_TIME;
 function calculateAngleValue() {
 	var triangleAngle = TRIANGLE_ANGLE.get();
-	if(CURRENT_ANGLE_SLERP_DELTA_TIME == 2 * TOTAL_ANGLE_SLERP_DELTA_TIME)
-		CURRENT_ANGLE_SLERP_DELTA_TIME = 0;
+
+
 	triangleAngle = slerp(MIN_ANGLE, MAX_ANGLE, TOTAL_ANGLE_SLERP_DELTA_TIME, CURRENT_ANGLE_SLERP_DELTA_TIME);
 	CURRENT_ANGLE_SLERP_DELTA_TIME += 0.001;
 	TRIANGLE_ANGLE.set(triangleAngle);
@@ -203,7 +269,7 @@ function clamp(number, min, max) {
 }
 
 function slerp(init, end, millis, current) {
-	var result = current == 0 ? 0 : ((-Math.cos(current / Math.PI * 10 / millis) + 1) * 0.5) * (end - init) + init;
+	var result = current == 0 ? init : clamp(((-Math.cos(current / Math.PI * 10 / millis) + 1) * 0.5) * (end - init) + init, init, end);
 	//console.log(result);
 	console.log(millis + " " + current)
 	console.log((-Math.cos(current / Math.PI * 10 / millis) + 1) * 50)
