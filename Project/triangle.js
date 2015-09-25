@@ -185,25 +185,29 @@ function subdivideTriangle(v1, v2, v3) {
 }
 
 var SUM_ANGLE = true;
+var MIN_ANGLE = -30.0;
+var MAX_ANGLE = 30.0;
+var CURRENT_ANGLE_SLERP_DELTA_TIME = 0.0;
+var TOTAL_ANGLE_SLERP_DELTA_TIME = 1.0;
 function calculateAngleValue() {
-	var triangleAngle = TRIANGLE_ANGLE.get()
-	if (SUM_ANGLE) {
-		triangleAngle += 0.05;
-		if (triangleAngle > 30.0) {
-			SUM_ANGLE = false;
-		}
-	} else {
-		triangleAngle -= 0.05;
-		if (triangleAngle < -30.0) {
-			SUM_ANGLE = true;
-		}
-	}
-
+	var triangleAngle = TRIANGLE_ANGLE.get();
+	if(CURRENT_ANGLE_SLERP_DELTA_TIME == 2 * TOTAL_ANGLE_SLERP_DELTA_TIME)
+		CURRENT_ANGLE_SLERP_DELTA_TIME = 0;
+	triangleAngle = slerp(MIN_ANGLE, MAX_ANGLE, TOTAL_ANGLE_SLERP_DELTA_TIME, CURRENT_ANGLE_SLERP_DELTA_TIME);
+	CURRENT_ANGLE_SLERP_DELTA_TIME += 0.001;
 	TRIANGLE_ANGLE.set(triangleAngle);
 }
 
 function clamp(number, min, max) {
 	return Math.max(min, Math.min(number, max));
+}
+
+function slerp(init, end, millis, current) {
+	var result = current == 0 ? 0 : ((-Math.cos(current / Math.PI * 10 / millis) + 1) * 0.5) * (end - init) + init;
+	//console.log(result);
+	console.log(millis + " " + current)
+	console.log((-Math.cos(current / Math.PI * 10 / millis) + 1) * 50)
+	return result;
 }
 
 function TriangleAttribute(value) {
@@ -228,4 +232,3 @@ TriangleAttribute.prototype.load = function() {
 TriangleAttribute.prototype.isLoaded = function(loaded) {
 	return this.loaded;
 }
-
