@@ -1,13 +1,18 @@
 var gl;
 
 var TRIANGLE_DIVISION = new TriangleAttribute(6.0);
+var TRIANGLE_HOLE = new TriangleAttribute(0.0);
 var TRIANGLE_ANGLE = new TriangleAttribute(0.0);
 var TRIANGLE_DEPTH = new TriangleAttribute(1.0);
 var TRANSLATION_MATRIX = new TriangleAttribute([0.0, 0.0]);
 var TRIANGLE_LIGHT_POINT = new TriangleAttribute(vec2(0.0, 0.0));
 var TRIANGLE_DRAW_FULL = new TriangleAttribute(true);
 var TRIANGLE_AUTOROTATE = new TriangleAttribute(true);
- 
+
+var MIN_ANGLE = - 30.0;
+var MAX_ANGLE = 30.0;
+var CURRENT_ANGLE_SLERP_DELTA_TIME = 0.0;
+var TOTAL_ANGLE_SLERP_DELTA_TIME = 0.2;
 
 var shaderPrograms;
 var canvas;
@@ -90,7 +95,7 @@ window.onload = function init() {
 		var mouseWheel = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
 		var newDepth = TRIANGLE_DEPTH.get() + mouseWheel/10.0;
 		if (newDepth > 0 && newDepth < 15.0) {
-				TRIANGLE_DEPTH.set(newDepth);
+			TRIANGLE_DEPTH.set(newDepth);
 		}
 	}, false);
 
@@ -126,16 +131,17 @@ window.onload = function init() {
 	gl.useProgram(shaderPrograms);
 
 	updateTriangle();
-	//updateTriangle();
 }
 
 function updateTriangle(){
 	updateTranslationMatrix();
+	updateTriangleHole();
 
 	if(TRIANGLE_AUTOROTATE.get() && !mouse.isDown) {
 		calculateAngleValue()
 	}
 
+	if(!TRIANGLE_HOLE.isLoaded()) {setTriangleHole()};
 	if(!TRIANGLE_DIVISION.isLoaded()) {setTriangleDivision()};
 	if(!TRIANGLE_ANGLE.isLoaded()) {setTriangleDistortion()};
 	if(!TRANSLATION_MATRIX.isLoaded()) {setTriangleTranslation()};
@@ -173,6 +179,12 @@ function setTriangleDistortion(){
 	gl.uniform1f(angleId, TRIANGLE_ANGLE.load());
 }
 
+function setTriangleHole(){
+	//console.log("HOLE");
+	var holeId = gl.getUniformLocation(shaderPrograms, "hole");
+	gl.uniform1f(holeId, TRIANGLE_HOLE.load());
+}
+
 function setTriangleDepth() {
 	//console.log("DEPTH");
 	var depthId = gl.getUniformLocation(shaderPrograms, "depth");
@@ -199,6 +211,17 @@ function updateTranslationMatrix() {
 		TRANSLATION_MATRIX.set([clamp(x - 0.01, -1.5, 1.5), y]);
 	}
 	
+}
+
+function updateTriangleHole() {
+	var hole = TRIANGLE_HOLE.get();
+
+	if (keysPressed[65] && hole > - 8 * Math.PI) { //a keypress
+		TRIANGLE_HOLE.set(hole - 0.1); 
+	} else if (keysPressed[68] && hole <= 8 * Math.PI) { //d keypress
+		updateTriangleHole
+		TRIANGLE_HOLE.set(hole + 0.1); 
+	}
 }
 
 function setTriangleTranslation() {
@@ -249,18 +272,13 @@ function subdivideTriangle(v1, v2, v3) {
 	return out;
 }
 
-var MIN_ANGLE = - 30.0;
-var MAX_ANGLE = 30.0;
-var CURRENT_ANGLE_SLERP_DELTA_TIME = 0.0;
-var TOTAL_ANGLE_SLERP_DELTA_TIME = 0.2;
-var CUT_1 = TOTAL_ANGLE_SLERP_DELTA_TIME;
-var CUT_2 = 2*TOTAL_ANGLE_SLERP_DELTA_TIME;
 function calculateAngleValue() {
 	var triangleAngle = TRIANGLE_ANGLE.get();
 
-
 	triangleAngle = slerp(MIN_ANGLE, MAX_ANGLE, TOTAL_ANGLE_SLERP_DELTA_TIME, CURRENT_ANGLE_SLERP_DELTA_TIME);
-	CURRENT_ANGLE_SLERP_DELTA_TIME += 0.001;
+
+	CURRENT_ANGLE_SLERP_DELTA_TIME += 0.0005;
+
 	TRIANGLE_ANGLE.set(triangleAngle);
 }
 
@@ -269,10 +287,8 @@ function clamp(number, min, max) {
 }
 
 function slerp(init, end, millis, current) {
-	var result = current == 0 ? init : clamp(((-Math.cos(current / Math.PI * 10 / millis) + 1) * 0.5) * (end - init) + init, init, end);
-	//console.log(result);
-	console.log(millis + " " + current)
-	console.log((-Math.cos(current / Math.PI * 10 / millis) + 1) * 50)
+	var result = clamp(((-Math.cos(current / Math.PI * 10 / millis) + 1) * 0.5) * (end - init) + init, init, end);
+	//var result = current == 0 ? init : clamp(((-Math.cos(current / Math.PI * 10 / millis) + 1) * 0.5) * (end - init) + init, init, end);
 	return result;
 }
 

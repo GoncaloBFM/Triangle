@@ -11,36 +11,25 @@ attribute vec4 vPosition;
 uniform vec2 vTranslation;
 uniform float angle;
 uniform float depth;
+uniform float hole;
 varying vec2 vPoint;
 
 void main(){
-	float x = vPosition[0] + vTranslation[0];
-	float y = vPosition[1] + vTranslation[1];
+	float x = vPosition.x + vTranslation.x;
+	float y = vPosition.y + vTranslation.y;
   vPoint = vec2(x, y);
 
+  float a = angle * sqrt( y * y  + x * x);
 
-  //float a = angle * pow( y * y  + x * x, 0.5);
-  float a = angle * distance(vPoint , vec2(0, 0));
-
-  float newX = x * cos(a) - y * sin(a);
+  float newX = x * cos(a + hole) - y * sin(a);
   float newY = x * sin(a) + y * cos(a);
 
-  if (newX < -depth) {
-    newX = -depth;
-  } else if(newX > depth) {
-    newX = depth;
-  }
+  vec2 newPoint = vec2(clamp(newX, -depth, depth), clamp(newY, -depth, depth));
 
-  if (newY < -depth) {
-    newY = -depth;
-  } else if(newY > depth) {
-    newY = depth;
-  }
-
-  gl_Position = vec4(newX,
-                     newY,
-                     vPosition[2], 
-                     vPosition[3] * depth);
+  gl_Position = vec4(newPoint.x,
+                     newPoint.y,
+                     vPosition.z, 
+                     vPosition.w * depth);
 }
 </script>
 <script id="fragment-shader" type="x-shader/x-fragment">
@@ -48,9 +37,9 @@ precision mediump float;
 uniform vec2 vLightPoint;
 varying vec2 vPoint;
 void main() {
-    float r = abs(vLightPoint[0]) / 256.0; //256 = 512 / 2 
-    float b = abs(vLightPoint[1]) /256.0; //256 = 1024 / 4
-    float g = pow(pow(vPoint[1], 2.0) + pow(vPoint[0], 2.0) , 0.5) / 1.4142135;
+    float r = abs(vLightPoint.x) / 256.0; //256 = 512 / 2 
+    float b = abs(vLightPoint.y) / 256.0; //256 = 1024 / 4
+    float g = sqrt(vPoint.y * vPoint.y + vPoint.x * vPoint.x) / 1.4142135;
     float a = 1.0;
     gl_FragColor = vec4(r, b, g, a);
 }
