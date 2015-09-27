@@ -1,22 +1,24 @@
 var gl;
 
 var TRIANGLE_DIVISION = new TriangleAttribute(6.0);
-var TRIANGLE_HOLE = new TriangleAttribute(0.0);
+var TRIANGLE_TWIST = new TriangleAttribute(0.0);
 var TRIANGLE_ANGLE = new TriangleAttribute(0.0);
 var TRIANGLE_DEPTH = new TriangleAttribute(1.0);
+var TRIANGLE_DEPTH_STEP = new TriangleAttribute(1.0);
 var TRANSLATION_MATRIX = new TriangleAttribute([0.0, 0.0]);
 var TRIANGLE_LIGHT_POINT = new TriangleAttribute(vec2(0.0, 0.0));
 var TRIANGLE_DRAW_FULL = new TriangleAttribute(true);
 var TRIANGLE_AUTOROTATE = new TriangleAttribute(true);
 
-var MIN_ANGLE = - 30.0;
-var MAX_ANGLE = 30.0;
+var MIN_ANGLE = - 0.0;
+var MAX_ANGLE = 0.0;
 var CURRENT_ANGLE_SLERP_DELTA_TIME = 0.0;
 var TOTAL_ANGLE_SLERP_DELTA_TIME = 0.2;
 
 var shaderPrograms;
 var canvas;
 var keysPressed = []; 
+var audio;
 
 var mouse = {
 	lastX : 0,
@@ -65,7 +67,29 @@ var mouse = {
 }
 
 window.onload = function init() {
+
+	var welcome = document.getElementById("welcome");
+	if (navigator.onLine) {
+		welcome.innerText = "Loading God... "+String.fromCharCode(13)+" Please use fullscreen";
+	} else {
+		welcome.innerText = "Please connect your brick to the Internet";
+	}
+
+
+	audio = new Audio("https://dl-web.dropbox.com/get/Brian%20Eno%20-%20Complex%20Heaven.mp3?_subject_uid=23479205&w=AAAe4MrOvluIKirlXfBz85ptGqt2sdn5hTQEitNkZCJBng");
+
+	audio.oncanplaythrough = function(){
+		audio.play();
+	}
+
+	audio.addEventListener('ended', function() {
+	    this.currentTime = 0;
+	    this.play();
+	}, false);
+
 	canvas = document.getElementById("gl-canvas");
+	canvas.width =  900.0 * (screen.width / 1920.0)
+	canvas.height = 700.0 * (screen.height / 1080.0);
 	mouse.calcRefTrans(canvas)
 
 	canvas.addEventListener('mousemove', function(evt) {
@@ -74,11 +98,18 @@ window.onload = function init() {
 		TRIANGLE_LIGHT_POINT.set(vec2(mouse.x, mouse.y));
 
 		if(mouse.isDown){
-			TRIANGLE_ANGLE.set(TRIANGLE_ANGLE.get() + mouse.getAngle() * 0.1)
+			TRIANGLE_ANGLE.set(TRIANGLE_ANGLE.value + mouse.getAngle() * 0.1)
 
-			MAX_ANGLE = TRIANGLE_ANGLE.get();
-			MIN_ANGLE = -TRIANGLE_ANGLE.get();
-			CURRENT_ANGLE_SLERP_DELTA_TIME = TOTAL_ANGLE_SLERP_DELTA_TIME;
+			minMax = TRIANGLE_ANGLE.value;
+			if (TRIANGLE_ANGLE.value < 0) {
+				MAX_ANGLE = -minMax
+				MIN_ANGLE = minMax
+				CURRENT_ANGLE_SLERP_DELTA_TIME = 0;
+			} else {
+				MAX_ANGLE = minMax
+				MIN_ANGLE = -minMax
+				CURRENT_ANGLE_SLERP_DELTA_TIME = TOTAL_ANGLE_SLERP_DELTA_TIME;
+			}
 		}
 
 	}, false);
@@ -93,9 +124,9 @@ window.onload = function init() {
 
 	canvas.addEventListener("mousewheel", function(e) {
 		var mouseWheel = Math.max(-1, Math.min(1, (e.wheelDelta || -e.detail)));
-		var newDepth = TRIANGLE_DEPTH.get() + mouseWheel/10.0;
+		var newDepth = TRIANGLE_DEPTH_STEP.value + mouseWheel/10.0;
 		if (newDepth > 0 && newDepth < 15.0) {
-			TRIANGLE_DEPTH.set(newDepth);
+			TRIANGLE_DEPTH_STEP.set(newDepth);
 		}
 	}, false);
 
@@ -103,13 +134,21 @@ window.onload = function init() {
 		var keycode = e.keyCode;
 		
 		if ((keycode >= 49) && (keycode <= 55)){ //numbers 1-7
-			TRIANGLE_DIVISION.set(keycode - 48);
+			var lastDivision = TRIANGLE_DIVISION.value;
+			var newDivision = keycode - 48;
+			$( "#poem" + lastDivision).fadeOut(200);
+			TRIANGLE_DIVISION.set(newDivision);
 		} else if (keycode == 13) { //enter
-			TRIANGLE_DRAW_FULL.set(!TRIANGLE_DRAW_FULL.get());
+			TRIANGLE_DRAW_FULL.set(!TRIANGLE_DRAW_FULL.value);
 		} else if (keycode == 32) { //autorotate
-			TRIANGLE_AUTOROTATE.set(!TRIANGLE_AUTOROTATE.get());
+			TRIANGLE_AUTOROTATE.set(!TRIANGLE_AUTOROTATE.value);
+		} else if (keycode == 88 || keycode == 123) { //x
+			if (audio.paused) {
+				audio.play();
+			} else {
+				audio.pause();
+			}
 		}
-
 		keysPressed[keycode] = true;
 	}, false);
 
@@ -135,18 +174,19 @@ window.onload = function init() {
 
 function updateTriangle(){
 	updateTranslationMatrix();
-	updateTriangleHole();
+	updateTriangleTwist();
+	updateTriangleDepth();
 
-	if(TRIANGLE_AUTOROTATE.get() && !mouse.isDown) {
+	if(TRIANGLE_AUTOROTATE.value && !mouse.isDown) {
 		calculateAngleValue()
 	}
 
-	if(!TRIANGLE_HOLE.isLoaded()) {setTriangleHole()};
-	if(!TRIANGLE_DIVISION.isLoaded()) {setTriangleDivision()};
-	if(!TRIANGLE_ANGLE.isLoaded()) {setTriangleDistortion()};
-	if(!TRANSLATION_MATRIX.isLoaded()) {setTriangleTranslation()};
-	if(!TRIANGLE_DEPTH.isLoaded()) {setTriangleDepth()};
-	if(!TRIANGLE_LIGHT_POINT.isLoaded()) {setTriangleLight()};
+	if(!TRIANGLE_TWIST.loaded) {setTriangleTwist()};
+	if(!TRIANGLE_DIVISION.loaded) {setTriangleDivision()};
+	if(!TRIANGLE_ANGLE.loaded) {setTriangleDistortion()};
+	if(!TRANSLATION_MATRIX.loaded) {setTriangleTranslation()};
+	if(!TRIANGLE_DEPTH.loaded) {setTriangleDepth()};
+	if(!TRIANGLE_LIGHT_POINT.loaded) {setTriangleLight()};
 	render();
 	requestAnimFrame(updateTriangle); 
 }
@@ -179,10 +219,10 @@ function setTriangleDistortion(){
 	gl.uniform1f(angleId, TRIANGLE_ANGLE.load());
 }
 
-function setTriangleHole(){
-	//console.log("HOLE");
-	var holeId = gl.getUniformLocation(shaderPrograms, "hole");
-	gl.uniform1f(holeId, TRIANGLE_HOLE.load());
+function setTriangleTwist(){
+	//console.log("TWIST");
+	var twistId = gl.getUniformLocation(shaderPrograms, "twist");
+	gl.uniform1f(twistId, TRIANGLE_TWIST.load());
 }
 
 function setTriangleDepth() {
@@ -194,12 +234,12 @@ function setTriangleDepth() {
 function setTriangleLight(){
 	//console.log("LIGHT");
 	var lightId = gl.getUniformLocation(shaderPrograms, "vLightPoint");
-	gl.uniform2f(lightId, TRIANGLE_LIGHT_POINT.load()[0], TRIANGLE_LIGHT_POINT.load()[1]);
+d	gl.uniform2f(lightId, TRIANGLE_LIGHT_POINT.load()[0], TRIANGLE_LIGHT_POINT.load()[1]);
 }
 
 function updateTranslationMatrix() {
-	var x = TRANSLATION_MATRIX.get()[0];
-	var y = TRANSLATION_MATRIX.get()[1];
+	var x = TRANSLATION_MATRIX.value[0];
+	var y = TRANSLATION_MATRIX.value[1];
 
 	if (keysPressed[38]) { //up
 		TRANSLATION_MATRIX.set([x, clamp(y + 0.01, -1.5, 1.5)]);
@@ -213,14 +253,23 @@ function updateTranslationMatrix() {
 	
 }
 
-function updateTriangleHole() {
-	var hole = TRIANGLE_HOLE.get();
+function updateTriangleTwist() {
+	var twist = TRIANGLE_TWIST.value;
 
-	if (keysPressed[65] && hole > - 8 * Math.PI) { //a keypress
-		TRIANGLE_HOLE.set(hole - 0.1); 
-	} else if (keysPressed[68] && hole <= 8 * Math.PI) { //d keypress
-		updateTriangleHole
-		TRIANGLE_HOLE.set(hole + 0.1); 
+	if (keysPressed[65] && twist > - 8 * Math.PI) { //a keypress
+		TRIANGLE_TWIST.set(twist - 0.1); 
+	} else if (keysPressed[68] && twist <= 8 * Math.PI) { //d keypress
+		TRIANGLE_TWIST.set(twist + 0.1); 
+	}
+}
+
+function updateTriangleDepth() {
+	step = TRIANGLE_DEPTH_STEP.value;
+	depth = TRIANGLE_DEPTH.value;
+	if(step - depth < -0.1) {
+		TRIANGLE_DEPTH.set(depth -= 0.05)
+	} else if(step - depth > 0.1) {
+		TRIANGLE_DEPTH.set(depth += 0.05)
 	}
 }
 
@@ -233,10 +282,10 @@ function setTriangleTranslation() {
 function render() {
 	gl.clear(gl.COLOR_BUFFER_BIT);
 	var s = 0;
-	var e = 3 * Math.pow(4, TRIANGLE_DIVISION.get());
+	var e = 3 * Math.pow(4, TRIANGLE_DIVISION.value);
 	for (var i = s; i < e; i += 3) {	
 		var drawType = null;
-		if (TRIANGLE_DRAW_FULL.get()) {
+		if (TRIANGLE_DRAW_FULL.value) {
 			drawType = gl.TRIANGLES;
 		} else {
 			drawType = gl.LINE_LOOP;
@@ -273,7 +322,7 @@ function subdivideTriangle(v1, v2, v3) {
 }
 
 function calculateAngleValue() {
-	var triangleAngle = TRIANGLE_ANGLE.get();
+	var triangleAngle = TRIANGLE_ANGLE.value;
 
 	triangleAngle = slerp(MIN_ANGLE, MAX_ANGLE, TOTAL_ANGLE_SLERP_DELTA_TIME, CURRENT_ANGLE_SLERP_DELTA_TIME);
 
