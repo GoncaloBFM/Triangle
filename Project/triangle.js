@@ -142,7 +142,7 @@ window.onload = function init() {
 			TRIANGLE_DRAW_FULL.set(!TRIANGLE_DRAW_FULL.value);
 		} else if (keycode == 32) { //autorotate
 			TRIANGLE_AUTOROTATE.set(!TRIANGLE_AUTOROTATE.value);
-		} else if (keycode == 88 || keycode == 123) { //x
+		} else if (keycode == 88 || keycode == 80) { //x
 			if (audio.paused) {
 				audio.play();
 			} else {
@@ -234,7 +234,7 @@ function setTriangleDepth() {
 function setTriangleLight(){
 	//console.log("LIGHT");
 	var lightId = gl.getUniformLocation(shaderPrograms, "vLightPoint");
-d	gl.uniform2f(lightId, TRIANGLE_LIGHT_POINT.load()[0], TRIANGLE_LIGHT_POINT.load()[1]);
+	gl.uniform2f(lightId, TRIANGLE_LIGHT_POINT.load()[0], TRIANGLE_LIGHT_POINT.load()[1]);
 }
 
 function updateTranslationMatrix() {
