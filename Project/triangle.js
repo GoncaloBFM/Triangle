@@ -73,6 +73,7 @@ window.onload = function init() {
 		welcome.innerText = "Loading God... "+String.fromCharCode(13)+" Please use fullscreen";
 	} else {
 		welcome.innerText = "Please connect your brick to the Internet";
+		return;
 	}
 
 
@@ -132,7 +133,7 @@ window.onload = function init() {
 
 	document.addEventListener("keydown", function(e) {
 		var keycode = e.keyCode;
-		
+		console.log("WW")
 		if ((keycode >= 49) && (keycode <= 55)){ //numbers 1-7
 			var lastDivision = TRIANGLE_DIVISION.value;
 			var newDivision = keycode - 48;
