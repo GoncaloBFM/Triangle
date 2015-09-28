@@ -133,7 +133,6 @@ window.onload = function init() {
 
 	document.addEventListener("keydown", function(e) {
 		var keycode = e.keyCode;
-		console.log("WW")
 		if ((keycode >= 49) && (keycode <= 55)){ //numbers 1-7
 			var lastDivision = TRIANGLE_DIVISION.value;
 			var newDivision = keycode - 48;
@@ -329,7 +328,10 @@ function calculateAngleValue() {
 
 	CURRENT_ANGLE_SLERP_DELTA_TIME += 0.0005;
 
-	TRIANGLE_ANGLE.set(triangleAngle);
+	//if ( CURRENT_ANGLE_SLERP_DELTA_TIME / Math.PI * 10 / TOTAL_ANGLE_SLERP_DELTA_TIME >= 2 * Math.PI)
+	//	CURRENT_ANGLE_SLERP_DELTA_TIME -= 2* Math.PI * Math .PI * TOTAL_ANGLE_SLERP_DELTA_TIME / 10;
+
+	TRIANGLE_ANGLE.set(triangleAngle)
 }
 
 function clamp(number, min, max) {
@@ -337,9 +339,8 @@ function clamp(number, min, max) {
 }
 
 function slerp(init, end, millis, current) {
-	var result = clamp(((-Math.cos(current / Math.PI * 10 / millis) + 1) * 0.5) * (end - init) + init, init, end);
 	//var result = current == 0 ? init : clamp(((-Math.cos(current / Math.PI * 10 / millis) + 1) * 0.5) * (end - init) + init, init, end);
-	return result;
+	return clamp(((-Math.cos(current / Math.PI * 10 / millis) + 1) * 0.5) * (end - init) + init, init, end);
 }
 
 function TriangleAttribute(value) {
