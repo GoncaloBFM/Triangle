@@ -133,7 +133,7 @@ window.onload = function init() {
 
 	document.addEventListener("keydown", function(e) {
 		var keycode = e.keyCode;
-		if ((keycode >= 49) && (keycode <= 55)){ //numbers 1-7
+		if ((keycode >= 48) && (keycode <= 55)){ //numbers 0-7
 			var lastDivision = TRIANGLE_DIVISION.value;
 			var newDivision = keycode - 48;
 			$( "#poem" + lastDivision).fadeOut(200);
@@ -149,6 +149,9 @@ window.onload = function init() {
 				audio.pause();
 			}
 		}
+
+		console.log(keycode);''
+
 		keysPressed[keycode] = true;
 	}, false);
 
