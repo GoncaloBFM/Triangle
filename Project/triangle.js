@@ -37,12 +37,12 @@ var mouse = {
 		mouse.transY = canvas.height / 2
 	},
 
-	update : function() {
+	update : function(event) {
 		mouse.lastX = mouse.x
 		mouse.lastY = mouse.y
 
-		mouse.x = event.offsetX - mouse.transX
-		mouse.y = event.offsetY - mouse.transY
+		mouse.x = event.offsetX == undefined ? event.layerX : event.offsetX - mouse.transX
+		mouse.y = event.offsetY == undefined ? event.layerY : event.offsetY - mouse.transY
 
 	},
 
@@ -69,6 +69,7 @@ var mouse = {
 window.onload = function init() {
 
 	var welcome = document.getElementById("welcome");
+	console.log(welcome)
 	if (navigator.onLine) {
 		welcome.innerText = "Loading God... "+String.fromCharCode(13)+" Please use fullscreen";
 	} else {
@@ -77,7 +78,7 @@ window.onload = function init() {
 	}
 
 
-	audio = new Audio("https://dl-web.dropbox.com/get/Brian%20Eno%20-%20Complex%20Heaven.mp3?_subject_uid=23479205&w=AAAe4MrOvluIKirlXfBz85ptGqt2sdn5hTQEitNkZCJBng");
+	audio = new Audio("https://dl.dropboxusercontent.com/u/23479205/Brian%20Eno%20-%20Complex%20Heaven.mp3");
 
 	audio.oncanplaythrough = function(){
 		audio.play();
@@ -94,7 +95,7 @@ window.onload = function init() {
 	mouse.calcRefTrans(canvas)
 
 	canvas.addEventListener('mousemove', function(evt) {
-		mouse.update();
+		mouse.update(evt);
 		
 		TRIANGLE_LIGHT_POINT.set(vec2(mouse.x, mouse.y));
 

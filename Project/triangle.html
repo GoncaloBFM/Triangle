@@ -122,7 +122,7 @@ void main() {
 						</tr>
 						<tr>
 							<td>							
-								Numbers 1 to 7</br>
+								Numbers 0 to 7</br>
 							</td>
 							<td align="right">
 							    Subdivide the poem
@@ -267,35 +267,39 @@ void main() {
 			</tr>
 		</table>
 	<script>
-		$('#left')
-		.mouseenter(function(){
-			$( "#controls" ).fadeIn(200);
-		})
-		.mouseleave(function() {
-			$( "#controls" ).fadeOut(200);
-		});
 
-		$('#right')
-		.mouseenter(function(){
-			$( "#poem" + TRIANGLE_DIVISION.value).fadeIn(200);
-		})
-		.mouseleave(function() {
-			$( "#poem" + TRIANGLE_DIVISION.value).fadeOut(200);
-		});
+		if (navigator.onLine) {
 
-		$('#down')
-		.mouseenter(function(){
-			$( "#about" ).fadeIn(200);
-		})
-		.mouseleave(function() {
-			$( "#about" ).fadeOut(200);
-		});
+			$('#left')
+			.mouseenter(function(){
+				$( "#controls" ).fadeIn(200);
+			})
+			.mouseleave(function() {
+				$( "#controls" ).fadeOut(200);
+			});
 
-		$(document).ready(function(){
-			$( "#loading" ).delay(1000).fadeOut(1000, animateAcknowledgements);
-		});
-		function animateAcknowledgements() {$( "#acknowledgements" ).fadeIn(1000).delay(1000).fadeOut(1000, fadeTriangleIn);}
-		function fadeTriangleIn() {$( "#triangle" ).fadeIn(1000);}
+			$('#right')
+			.mouseenter(function(){
+				$( "#poem" + TRIANGLE_DIVISION.value).fadeIn(200);
+			})
+			.mouseleave(function() {
+				$( "#poem" + TRIANGLE_DIVISION.value).fadeOut(200);
+			});
+
+			$('#down')
+			.mouseenter(function(){
+				$( "#about" ).fadeIn(200);
+			})
+			.mouseleave(function() {
+				$( "#about" ).fadeOut(200);
+			});
+
+			$(document).ready(function(){
+				$( "#loading" ).delay(1000).fadeOut(1000, animateAcknowledgements);
+			});
+			function animateAcknowledgements() {$( "#acknowledgements" ).fadeIn(1000).delay(1000).fadeOut(1000, fadeTriangleIn);}
+			function fadeTriangleIn() {$( "#triangle" ).fadeIn(1000);}
+		}
 	</script> 
 </body>
 </html>
