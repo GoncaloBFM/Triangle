@@ -19,6 +19,7 @@ var shaderPrograms;
 var canvas;
 var keysPressed = []; 
 var audio;
+var bufferManager = {};
 
 var mouse = {
 	lastX : 0,
@@ -196,25 +197,44 @@ function updateTriangle(){
 }
 
 function setTriangleDivision(){
+	var triangleDivision = TRIANGLE_DIVISION.load();
 	
-	//console.log("DIVISION");
+	var bufferId = bufferManager[triangleDivision];
+	// Load a previous buffer or use a previous one
+	if(bufferId == undefined){
+		console.log("creating buffer. TRIANGLE_DIVISION = " + triangleDivision)
+		var vertices = [
+		vec2(-0.5,-0.5),
+		vec2(0,0.5),
+		vec2(0.5,-0.5)];
+	
+		vertices = subdivideTriagleNTimes(vertices, triangleDivision);
+	
+		// Load the data into the GPU
+		bufferId = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
+		gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.STATIC_DRAW);
+	
+		// Associate our shader variables with our data buffer
+		var vPosition = gl.getAttribLocation(shaderPrograms, "vPosition");
+		gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(vPosition);
+		
+		bufferManager[triangleDivision] = bufferId;
+	}
+	else{
+		console.log("using cached buffer. TRIANGLE_DIVISION = " + triangleDivision)
+		gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
 
-	var vertices = [
-	vec2(-0.5,-0.5),
-	vec2(0,0.5),
-	vec2(0.5,-0.5)];
+		var vPosition = gl.getAttribLocation(shaderPrograms, "vPosition");
+		gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(vPosition);
+	}
+}
 
-	vertices = subdivideTriagleNTimes(vertices, TRIANGLE_DIVISION.load());
-
-	// Load the data into the GPU
-	var bufferId = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
-	gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.STATIC_DRAW);
-
-	// Associate our shader variables with our data buffer
-	var vPosition = gl.getAttribLocation(shaderPrograms, "vPosition");
-	gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
-	gl.enableVertexAttribArray(vPosition);
+function clearBuffer(triangleDivision){
+	console.log("deleting buffer: " + triangleDivision);
+	gl.deleteBuffer(bufferManager[triangleDivision]);
 }
 
 function setTriangleDistortion(){
