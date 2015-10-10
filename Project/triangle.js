@@ -23,9 +23,9 @@ var ORIGINAL_VERTICES = [
 	vec2(0.5,-0.5),
 	vec2(0,0.5)];
 
-shapes = {};
-shapes[FULL_TRIANGLE] = [];
-shapes[WIRE_TRIANGLE] = [];
+var shapes = {};
+var shapes[FULL_TRIANGLE] = [];
+var shapes[WIRE_TRIANGLE] = [];
 
 var shaderPrograms;
 var canvas;
@@ -39,6 +39,7 @@ var lightId;
 var translationId;
 var vPosition;
 var buffer;
+var bufferId;
 var currentShape;
 
 var mouse = {
