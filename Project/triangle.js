@@ -19,7 +19,14 @@ var shaderPrograms;
 var canvas;
 var keysPressed = []; 
 var audio;
-var bufferManager = {};
+
+var angleId;
+var twistId;
+var depthId;
+var lightId;
+var translationId;
+var vPosition;
+var buffer;
 
 var mouse = {
 	lastX : 0,
@@ -70,7 +77,6 @@ var mouse = {
 window.onload = function init() {
 
 	var welcome = document.getElementById("welcome");
-	console.log(welcome)
 	if (navigator.onLine) {
 		welcome.innerText = "Loading God... "+String.fromCharCode(13)+" Please use fullscreen";
 	} else {
@@ -152,8 +158,6 @@ window.onload = function init() {
 			}
 		}
 
-		console.log(keycode);''
-
 		keysPressed[keycode] = true;
 	}, false);
 
@@ -173,6 +177,13 @@ window.onload = function init() {
 	// Load shaders and initialize attribute buffers
 	shaderPrograms = initShaders(gl, "vertex-shader", "fragment-shader");
 	gl.useProgram(shaderPrograms);
+	angleId = gl.getUniformLocation(shaderPrograms, "angle");
+	vPosition = gl.getAttribLocation(shaderPrograms, "vPosition");
+	twistId = gl.getUniformLocation(shaderPrograms, "twist");
+	depthId = gl.getUniformLocation(shaderPrograms, "depth");
+	lightId = gl.getUniformLocation(shaderPrograms, "vLightPoint");
+	translationId = gl.getUniformLocation(shaderPrograms, "vTranslation");
+
 
 	updateTriangle();
 }
@@ -197,67 +208,47 @@ function updateTriangle(){
 }
 
 function setTriangleDivision(){
-	var triangleDivision = TRIANGLE_DIVISION.load();
-	
-	var bufferId = bufferManager[triangleDivision];
-	// Load a previous buffer or use a previous one
-	if(bufferId == undefined){
-		console.log("creating buffer. TRIANGLE_DIVISION = " + triangleDivision)
-		var vertices = [
+	var vertices = [
 		vec2(-0.5,-0.5),
 		vec2(0,0.5),
 		vec2(0.5,-0.5)];
-	
-		vertices = subdivideTriagleNTimes(vertices, triangleDivision);
-	
-		// Load the data into the GPU
-		bufferId = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
-		gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.STATIC_DRAW);
-	
-		// Associate our shader variables with our data buffer
-		var vPosition = gl.getAttribLocation(shaderPrograms, "vPosition");
-		gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(vPosition);
-		
-		bufferManager[triangleDivision] = bufferId;
-	}
-	else{
-		console.log("using cached buffer. TRIANGLE_DIVISION = " + triangleDivision)
-		gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
 
-		var vPosition = gl.getAttribLocation(shaderPrograms, "vPosition");
-		gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(vPosition);
+	var triangleDivision = TRIANGLE_DIVISION.load();
+	
+	// Load a previous buffer or use a previous one
+	if(!((typeof bufferId) === 'undefined')){
+		gl.deleteBuffer(bufferId);
 	}
-}
 
-function clearBuffer(triangleDivision){
-	console.log("deleting buffer: " + triangleDivision);
-	gl.deleteBuffer(bufferManager[triangleDivision]);
+	vertices = subdivideTriagleNTimes(vertices, triangleDivision);
+
+	// Load the data into the GPU
+	bufferId = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
+	gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.DYNAMIC_DRAW);
+
+	// Associate our shader variables with our data buffer
+	gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(vPosition);
 }
 
 function setTriangleDistortion(){
 	//console.log("DISTORTION");
-	var angleId = gl.getUniformLocation(shaderPrograms, "angle");
 	gl.uniform1f(angleId, TRIANGLE_ANGLE.load());
 }
 
 function setTriangleTwist(){
 	//console.log("TWIST");
-	var twistId = gl.getUniformLocation(shaderPrograms, "twist");
 	gl.uniform1f(twistId, TRIANGLE_TWIST.load());
 }
 
 function setTriangleDepth() {
 	//console.log("DEPTH");
-	var depthId = gl.getUniformLocation(shaderPrograms, "depth");
 	gl.uniform1f(depthId, TRIANGLE_DEPTH.load());
 }
 
 function setTriangleLight(){
 	//console.log("LIGHT");
-	var lightId = gl.getUniformLocation(shaderPrograms, "vLightPoint");
 	gl.uniform2f(lightId, TRIANGLE_LIGHT_POINT.load()[0], TRIANGLE_LIGHT_POINT.load()[1]);
 }
 
@@ -299,7 +290,6 @@ function updateTriangleDepth() {
 
 function setTriangleTranslation() {
 	//console.log("TRANSLATION")
-	var translationId = gl.getUniformLocation(shaderPrograms, "vTranslation");
 	gl.uniform2f(translationId, TRANSLATION_MATRIX.load()[0], TRANSLATION_MATRIX.load()[1]);
 }
 
