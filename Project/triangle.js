@@ -1,19 +1,31 @@
 var gl;
 
-var TRIANGLE_DIVISION = new TriangleAttribute(6.0);
+var FULL_TRIANGLE = "triangle_full";
+var WIRE_TRIANGLE = "triangle_wire";
+
+var TRIANGLE_DIVISION = new TriangleAttribute(6);
 var TRIANGLE_TWIST = new TriangleAttribute(0.0);
 var TRIANGLE_ANGLE = new TriangleAttribute(0.0);
 var TRIANGLE_DEPTH = new TriangleAttribute(1.0);
 var TRIANGLE_DEPTH_STEP = new TriangleAttribute(1.0);
 var TRANSLATION_MATRIX = new TriangleAttribute([0.0, 0.0]);
 var TRIANGLE_LIGHT_POINT = new TriangleAttribute(vec2(0.0, 0.0));
-var TRIANGLE_DRAW_FULL = new TriangleAttribute(true);
+var TRIANGLE_DRAW_FULL = new TriangleAttribute(WIRE_TRIANGLE);
 var TRIANGLE_AUTOROTATE = new TriangleAttribute(true);
 
 var MIN_ANGLE = - 0.0;
 var MAX_ANGLE = 0.0;
 var CURRENT_ANGLE_SLERP_DELTA_TIME = 0.0;
 var TOTAL_ANGLE_SLERP_DELTA_TIME = 0.2;
+
+var ORIGINAL_VERTICES = [
+	vec2(-0.5,-0.5),
+	vec2(0.5,-0.5),
+	vec2(0,0.5)];
+
+shapes = {};
+shapes[FULL_TRIANGLE] = [];
+shapes[WIRE_TRIANGLE] = [];
 
 var shaderPrograms;
 var canvas;
@@ -27,6 +39,7 @@ var lightId;
 var translationId;
 var vPosition;
 var buffer;
+var currentShape;
 
 var mouse = {
 	lastX : 0,
@@ -77,13 +90,10 @@ var mouse = {
 window.onload = function init() {
 
 	var welcome = document.getElementById("welcome");
-	if (navigator.onLine) {
-		welcome.innerText = "Loading God... "+String.fromCharCode(13)+" Please use fullscreen";
-	} else {
-		welcome.innerText = "Please connect your brick to the Internet";
+	if (!navigator.onLine) {
+		welcome.innerHTML = "Please connect your brick to the Internet";
 		return;
 	}
-
 
 	audio = new Audio("https://dl.dropboxusercontent.com/u/23479205/Brian%20Eno%20-%20Complex%20Heaven.mp3");
 
@@ -147,7 +157,7 @@ window.onload = function init() {
 			$( "#poem" + lastDivision).fadeOut(200);
 			TRIANGLE_DIVISION.set(newDivision);
 		} else if (keycode == 13) { //enter
-			TRIANGLE_DRAW_FULL.set(!TRIANGLE_DRAW_FULL.value);
+			TRIANGLE_DRAW_FULL.set(currentShape.type == FULL_TRIANGLE ? WIRE_TRIANGLE : FULL_TRIANGLE);
 		} else if (keycode == 32) { //autorotate
 			TRIANGLE_AUTOROTATE.set(!TRIANGLE_AUTOROTATE.value);
 		} else if (keycode == 88 || keycode == 80) { //x
@@ -174,6 +184,15 @@ window.onload = function init() {
 	gl.viewport(0,0,canvas.width, canvas.height);
 	gl.clearColor(0.0, 0.0, 0.0, 1.0);
 	
+	shapes[FULL_TRIANGLE][0] = new Shape(FULL_TRIANGLE, gl.TRIANGLES, 0, ORIGINAL_VERTICES);
+	shapes[WIRE_TRIANGLE][0] = new Shape(WIRE_TRIANGLE, gl.LINES, 0, duplicateVertices(ORIGINAL_VERTICES));
+	for (var i = 1; i <= 7; i++) {
+		var triangle_full = shapes[FULL_TRIANGLE][i] = new Shape(FULL_TRIANGLE, gl.TRIANGLES, i, subdivideTriangleList(shapes[FULL_TRIANGLE][i - 1].vertices));
+		shapes[WIRE_TRIANGLE][i] = new Shape(WIRE_TRIANGLE, gl.LINES, i, duplicateVertices(triangle_full.vertices));
+	}
+
+	currentShape = shapes[TRIANGLE_DRAW_FULL.value][TRIANGLE_DIVISION.value];
+
 	// Load shaders and initialize attribute buffers
 	shaderPrograms = initShaders(gl, "vertex-shader", "fragment-shader");
 	gl.useProgram(shaderPrograms);
@@ -184,6 +203,7 @@ window.onload = function init() {
 	lightId = gl.getUniformLocation(shaderPrograms, "vLightPoint");
 	translationId = gl.getUniformLocation(shaderPrograms, "vTranslation");
 
+	$( "#loading" ).delay(1000).fadeOut(1000, animateAcknowledgements);
 
 	updateTriangle();
 }
@@ -198,6 +218,7 @@ function updateTriangle(){
 	}
 
 	if(!TRIANGLE_TWIST.loaded) {setTriangleTwist()};
+	if(!TRIANGLE_DRAW_FULL.loaded) {setTriangleType()};
 	if(!TRIANGLE_DIVISION.loaded) {setTriangleDivision()};
 	if(!TRIANGLE_ANGLE.loaded) {setTriangleDistortion()};
 	if(!TRANSLATION_MATRIX.loaded) {setTriangleTranslation()};
@@ -208,24 +229,25 @@ function updateTriangle(){
 }
 
 function setTriangleDivision(){
-	var vertices = [
-		vec2(-0.5,-0.5),
-		vec2(0,0.5),
-		vec2(0.5,-0.5)];
+	currentShape = shapes[currentShape.type][TRIANGLE_DIVISION.load()];
+	loadNewBuffer(currentShape.vertices);
+}
 
-	var triangleDivision = TRIANGLE_DIVISION.load();
-	
+function setTriangleType(){
+	currentShape = shapes[TRIANGLE_DRAW_FULL.load()][currentShape.divisionNumber];
+	loadNewBuffer(currentShape.vertices);
+}
+
+function loadNewBuffer(vertices){
 	// Load a previous buffer or use a previous one
 	if(!((typeof bufferId) === 'undefined')){
 		gl.deleteBuffer(bufferId);
 	}
 
-	vertices = subdivideTriagleNTimes(vertices, triangleDivision);
-
 	// Load the data into the GPU
 	bufferId = gl.createBuffer();
 	gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
-	gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.DYNAMIC_DRAW);
+	gl.bufferData(gl.ARRAY_BUFFER, flatten(currentShape.vertices), gl.DYNAMIC_DRAW);
 
 	// Associate our shader variables with our data buffer
 	gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
@@ -293,7 +315,7 @@ function setTriangleTranslation() {
 	gl.uniform2f(translationId, TRANSLATION_MATRIX.load()[0], TRANSLATION_MATRIX.load()[1]);
 }
 
-function render() {
+function oldrender() {
 	gl.clear(gl.COLOR_BUFFER_BIT);
 	var s = 0;
 	var e = 3 * Math.pow(4, TRIANGLE_DIVISION.value);
@@ -309,6 +331,12 @@ function render() {
 	} 
 }
 
+function render() {
+	gl.clear(gl.COLOR_BUFFER_BIT);
+	gl.drawArrays(currentShape.drawMethod, 0, currentShape.verticesNumber); 
+	
+}
+
 function subdivideTriagleNTimes(vList, times){
 	for(var i = 0; i < times; i++){
 		vList = subdivideTriangleList(vList)
@@ -320,6 +348,16 @@ function subdivideTriangleList(vList){
 	var out = [];
 	for(var i = 0; i < vList.length; i += 3){
 		out = out.concat(subdivideTriangle(vList[i], vList[i+1], vList[i+2]));
+	}
+	return out;
+}
+
+function duplicateVertices(vList) {
+	var out = [];
+	var aux;
+	for (var i = 0; i < vList.length; i += 3) {
+		aux = vList.slice(i, i+3);
+		out = out.concat(aux).concat(aux);
 	}
 	return out;
 }
@@ -357,6 +395,14 @@ function slerp(init, end, millis, current) {
 	return clamp(((-Math.cos(current / Math.PI * 10 / millis) + 1) * 0.5) * (end - init) + init, init, end);
 }
 
+function Shape(type, drawMethod, divisionNumber, vertices) {
+	this.type = type;
+	this.drawMethod = drawMethod;
+	this.divisionNumber = divisionNumber;
+	this.vertices = vertices;
+	this.verticesNumber = vertices.length;
+}
+
 function TriangleAttribute(value) {
 	this.value = value;
 	this.loaded = false;
@@ -365,10 +411,6 @@ function TriangleAttribute(value) {
 TriangleAttribute.prototype.set = function(value) {
 	this.value = value;
 	this.loaded = false;
-}
-
-TriangleAttribute.prototype.get = function() {
-	return this.value;
 }
 
 TriangleAttribute.prototype.load = function() {
