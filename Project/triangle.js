@@ -24,8 +24,8 @@ var ORIGINAL_VERTICES = [
 	vec2(0,0.5)];
 
 var shapes = {};
-var shapes[FULL_TRIANGLE] = [];
-var shapes[WIRE_TRIANGLE] = [];
+shapes[FULL_TRIANGLE] = [];
+shapes[WIRE_TRIANGLE] = [];
 
 var shaderPrograms;
 var canvas;
@@ -120,7 +120,7 @@ window.onload = function init() {
 		if(mouse.isDown){
 			TRIANGLE_ANGLE.set(TRIANGLE_ANGLE.value + mouse.getAngle() * 0.1)
 
-			minMax = TRIANGLE_ANGLE.value;
+			var minMax = TRIANGLE_ANGLE.value;
 			if (TRIANGLE_ANGLE.value < 0) {
 				MAX_ANGLE = -minMax
 				MIN_ANGLE = minMax
@@ -302,8 +302,8 @@ function updateTriangleTwist() {
 }
 
 function updateTriangleDepth() {
-	step = TRIANGLE_DEPTH_STEP.value;
-	depth = TRIANGLE_DEPTH.value;
+	var step = TRIANGLE_DEPTH_STEP.value;
+	var depth = TRIANGLE_DEPTH.value;
 	if(step - depth < -0.1) {
 		TRIANGLE_DEPTH.set(depth -= 0.05)
 	} else if(step - depth > 0.1) {
